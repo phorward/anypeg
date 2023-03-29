@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-from abc import abstractmethod
 from typing import (
     TYPE_CHECKING,
-    AbstractSet,
     Any,
     Iterable,
     Iterator,
     List,
     Optional,
-    Set,
     Tuple,
     Union,
 )
@@ -29,7 +26,7 @@ class GrammarVisitor:
         visitor = getattr(self, method, self.generic_visit)
         return visitor(node, *args, **kwargs)
 
-    def generic_visit(self, node: Iterable[Any], *args: Any, **kwargs: Any) -> None:
+    def generic_visit(self, node: Iterable[Any], *args: Any, **kwargs: Any) -> Any:
         """Called if no explicit visitor function exists for a node."""
         for value in node:
             if isinstance(value, list):
@@ -99,9 +96,6 @@ class Rule:
     def __iter__(self) -> Iterator[Rhs]:
         yield self.rhs
 
-    def initial_names(self) -> AbstractSet[str]:
-        return self.rhs.initial_names()
-
     def flatten(self) -> Rhs:
         # If it's a single parenthesized group, flatten it.
         rhs = self.rhs
@@ -130,10 +124,6 @@ class Leaf:
         if False:
             yield
 
-    @abstractmethod
-    def initial_names(self) -> AbstractSet[str]:
-        raise NotImplementedError
-
 
 class NameLeaf(Leaf):
     """The value is the name."""
@@ -146,18 +136,12 @@ class NameLeaf(Leaf):
     def __repr__(self) -> str:
         return f"NameLeaf({self.value!r})"
 
-    def initial_names(self) -> AbstractSet[str]:
-        return {self.value}
-
 
 class StringLeaf(Leaf):
     """The value is a string literal, including quotes."""
 
     def __repr__(self) -> str:
         return f"StringLeaf({self.value!r})"
-
-    def initial_names(self) -> AbstractSet[str]:
-        return set()
 
 
 class Rhs:
@@ -173,12 +157,6 @@ class Rhs:
 
     def __iter__(self) -> Iterator[List[Alt]]:
         yield self.alts
-
-    def initial_names(self) -> AbstractSet[str]:
-        names: Set[str] = set()
-        for alt in self.alts:
-            names |= alt.initial_names()
-        return names
 
     def collect_todo(self, gen: ParserGenerator) -> None:
         for alt in self.alts:
@@ -209,14 +187,6 @@ class Alt:
     def __iter__(self) -> Iterator[List[NamedItem]]:
         yield self.items
 
-    def initial_names(self) -> AbstractSet[str]:
-        names: Set[str] = set()
-        for item in self.items:
-            names |= item.initial_names()
-            if not item.nullable:
-                break
-        return names
-
     def collect_todo(self, gen: ParserGenerator) -> None:
         for item in self.items:
             item.collect_todo(gen)
@@ -241,9 +211,6 @@ class NamedItem:
     def __iter__(self) -> Iterator[Item]:
         yield self.item
 
-    def initial_names(self) -> AbstractSet[str]:
-        return self.item.initial_names()
-
     def collect_todo(self, gen: ParserGenerator) -> None:
         gen.callmakervisitor.visit(self.item)
 
@@ -258,9 +225,6 @@ class Forced:
     def __iter__(self) -> Iterator[Plain]:
         yield self.node
 
-    def initial_names(self) -> AbstractSet[str]:
-        return set()
-
 
 class Lookahead:
     def __init__(self, node: Plain, sign: str):
@@ -272,9 +236,6 @@ class Lookahead:
 
     def __iter__(self) -> Iterator[Plain]:
         yield self.node
-
-    def initial_names(self) -> AbstractSet[str]:
-        return set()
 
 
 class PositiveLookahead(Lookahead):
@@ -311,9 +272,6 @@ class Opt:
     def __iter__(self) -> Iterator[Item]:
         yield self.node
 
-    def initial_names(self) -> AbstractSet[str]:
-        return self.node.initial_names()
-
 
 class Repeat:
     """Shared base class for x* and x+."""
@@ -324,9 +282,6 @@ class Repeat:
 
     def __iter__(self) -> Iterator[Plain]:
         yield self.node
-
-    def initial_names(self) -> AbstractSet[str]:
-        return self.node.initial_names()
 
 
 class Repeat0(Repeat):
@@ -380,9 +335,6 @@ class Group:
     def __iter__(self) -> Iterator[Rhs]:
         yield self.rhs
 
-    def initial_names(self) -> AbstractSet[str]:
-        return self.rhs.initial_names()
-
 
 class Cut:
     def __init__(self) -> None:
@@ -402,9 +354,6 @@ class Cut:
         if not isinstance(other, Cut):
             return NotImplemented
         return True
-
-    def initial_names(self) -> AbstractSet[str]:
-        return set()
 
 
 Plain = Union[Leaf, Group]

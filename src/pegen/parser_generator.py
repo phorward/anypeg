@@ -1,6 +1,18 @@
 import contextlib
 from abc import abstractmethod
-from typing import Any, IO, AbstractSet, Dict, Iterator, List, Optional, Set, Text, Tuple
+from typing import (
+    IO,
+    AbstractSet,
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Text,
+    Tuple,
+)
 
 from pegen import sccutils
 from pegen.grammar import (
@@ -238,6 +250,44 @@ def compute_nullables(rules: Dict[str, Rule]) -> None:
         nullable_visitor.visit(rule)
 
 
+class InitialNamesVisitor(GrammarVisitor):
+    def __init__(self, rules: Dict[str, Rule]) -> None:
+        self.rules = rules
+
+    def generic_visit(self, node: Iterable[Any], *args: Any, **kwargs: Any) -> Set[Any]:
+        names: Set[Any] = set()
+        for value in node:
+            if isinstance(value, list):
+                for item in value:
+                    names |= self.visit(item, *args, **kwargs)
+            else:
+                names |= self.visit(value, *args, **kwargs)
+        return names
+
+    def visit_Alt(self, alt: Alt) -> Set[Any]:
+        names: Set[str] = set()
+        for item in alt.items:
+            names |= self.visit(item)
+            if not item.nullable:
+                break
+        return names
+
+    def visit_Forced(self, force: Forced) -> Set[Any]:
+        return set()
+
+    def visit_LookAhead(self, lookahead: Lookahead) -> Set[Any]:
+        return set()
+
+    def visit_Cut(self, cut: Cut) -> Set[Any]:
+        return set()
+
+    def visit_NameLeaf(self, node: NameLeaf) -> Set[Any]:
+        return {node.value}
+
+    def visit_StringLeaf(self, node: StringLeaf) -> Set[Any]:
+        return set()
+
+
 def compute_left_recursives(
     rules: Dict[str, Rule]
 ) -> Tuple[Dict[str, AbstractSet[str]], List[AbstractSet[str]]]:
@@ -276,10 +326,11 @@ def make_first_graph(rules: Dict[str, Rule]) -> Dict[str, AbstractSet[str]]:
 
     Note that this requires the nullable flags to have been computed.
     """
+    initial_name_visitor = InitialNamesVisitor(rules)
     graph = {}
     vertices: Set[str] = set()
     for rulename, rhs in rules.items():
-        graph[rulename] = names = rhs.initial_names()
+        graph[rulename] = names = initial_name_visitor.visit(rhs)
         vertices |= names
     for vertex in vertices:
         graph.setdefault(vertex, set())
