@@ -237,6 +237,7 @@ class PythonParserGenerator(ParserGenerator, GrammarVisitor):
         self.cleanup_statements: List[str] = []
 
     def generate(self, filename: str) -> None:
+        self.collect_rules()
         header = self.grammar.metas.get("header", MODULE_PREFIX)
         if header is not None:
             self.print(header.rstrip("\n").format(filename=filename))
@@ -246,12 +247,10 @@ class PythonParserGenerator(ParserGenerator, GrammarVisitor):
         cls_name = self.grammar.metas.get("class", "GeneratedParser")
         self.print("# Keywords and soft keywords are listed at the end of the parser definition.")
         self.print(f"class {cls_name}(Parser):")
-        while self.todo:
-            for rulename, rule in list(self.todo.items()):
-                del self.todo[rulename]
-                self.print()
-                with self.indent():
-                    self.visit(rule)
+        for rule in self.all_rules.values():
+            self.print()
+            with self.indent():
+                self.visit(rule)
 
         self.print()
         with self.indent():

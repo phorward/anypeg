@@ -37,6 +37,20 @@ from pegen.grammar import (
 )
 
 
+class RuleCollectorVisitor(GrammarVisitor):
+    """Visitor that invokes a provieded callmaker visitor with just the NamedItem nodes"""
+
+    def __init__(self, rules: Dict[str, Rule], callmakervisitor: GrammarVisitor) -> None:
+        self.rulses = rules
+        self.callmaker = callmakervisitor
+
+    def visit_Rule(self, rule: Rule) -> None:
+        self.visit(rule.flatten())
+
+    def visit_NamedItem(self, item: NamedItem) -> None:
+        self.callmaker.visit(item)
+
+
 class RuleCheckingVisitor(GrammarVisitor):
     def __init__(self, rules: Dict[str, Rule], tokens: Set[str]):
         self.rules = rules
@@ -70,9 +84,8 @@ class ParserGenerator:
         self.level = 0
         compute_nullables(self.rules)
         self.first_graph, self.first_sccs = compute_left_recursives(self.rules)
-        self.todo = self.rules.copy()  # Rules to generate
         self.counter = 0  # For name_rule()/name_loop()
-        self.all_rules: Dict[str, Rule] = {}  # Rules + temporal rules
+        self.all_rules: Dict[str, Rule] = self.rules.copy()  # Rules + temporal rules
         self._local_variable_stack: List[List[str]] = []
 
     def validate_rule_names(self) -> None:
@@ -113,22 +126,22 @@ class ParserGenerator:
         for line in lines.splitlines():
             self.print(line)
 
-    def collect_todo(self) -> None:
+    def collect_rules(self) -> None:
+        rule_collector = RuleCollectorVisitor(self.rules, self.callmakervisitor)
         done: Set[str] = set()
         while True:
-            alltodo = list(self.todo)
-            self.all_rules.update(self.todo)
-            todo = [i for i in alltodo if i not in done]
+            computed_rules = list(self.all_rules)
+            todo = [i for i in computed_rules if i not in done]
             if not todo:
                 break
+            done = set(self.all_rules)
             for rulename in todo:
-                self.todo[rulename].collect_todo(self)
-            done = set(alltodo)
+                rule_collector.visit(self.all_rules[rulename])
 
     def name_node(self, rhs: Rhs) -> str:
         self.counter += 1
         name = f"_tmp_{self.counter}"  # TODO: Pick a nicer name.
-        self.todo[name] = Rule(name, None, rhs)
+        self.all_rules[name] = Rule(name, None, rhs)
         return name
 
     def name_loop(self, node: Plain, is_repeat1: bool) -> str:
@@ -138,7 +151,7 @@ class ParserGenerator:
         else:
             prefix = "_loop0_"
         name = f"{prefix}{self.counter}"  # TODO: It's ugly to signal via the name.
-        self.todo[name] = Rule(name, None, Rhs([Alt([NamedItem(None, node)])]))
+        self.all_rules[name] = Rule(name, None, Rhs([Alt([NamedItem(None, node)])]))
         return name
 
     def name_gather(self, node: Gather) -> str:
@@ -150,7 +163,7 @@ class ParserGenerator:
             [NamedItem(None, node.separator), NamedItem("elem", node.node)],
             action="elem",
         )
-        self.todo[extra_function_name] = Rule(
+        self.all_rules[extra_function_name] = Rule(
             extra_function_name,
             None,
             Rhs([extra_function_alt]),
@@ -158,7 +171,7 @@ class ParserGenerator:
         alt = Alt(
             [NamedItem("elem", node.node), NamedItem("seq", NameLeaf(extra_function_name))],
         )
-        self.todo[name] = Rule(
+        self.all_rules[name] = Rule(
             name,
             None,
             Rhs([alt]),
