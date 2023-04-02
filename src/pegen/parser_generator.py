@@ -1,4 +1,6 @@
+import ast
 import contextlib
+import re
 from abc import abstractmethod
 from typing import (
     IO,
@@ -51,6 +53,23 @@ class RuleCollectorVisitor(GrammarVisitor):
         self.callmaker.visit(item)
 
 
+class KeywordCollectorVisitor(GrammarVisitor):
+    """Visitor that collects all the keywods and soft keywords in the Grammar"""
+
+    def __init__(self, gen: "ParserGenerator", keywords: Dict[str, int], soft_keywords: Set[str]):
+        self.generator = gen
+        self.keywords = keywords
+        self.soft_keywords = soft_keywords
+
+    def visit_StringLeaf(self, node: StringLeaf) -> None:
+        val = ast.literal_eval(node.value)
+        if re.match(r"[a-zA-Z_]\w*\Z", val):  # This is a keyword
+            if node.value.endswith("'") and node.value not in self.keywords:
+                self.keywords[val] = self.generator.keyword_type()
+            else:
+                return self.soft_keywords.add(node.value.replace('"', ""))
+
+
 class RuleCheckingVisitor(GrammarVisitor):
     def __init__(self, rules: Dict[str, Rule], tokens: Set[str]):
         self.rules = rules
@@ -73,6 +92,8 @@ class ParserGenerator:
     def __init__(self, grammar: Grammar, tokens: Set[str], file: Optional[IO[Text]]):
         self.grammar = grammar
         self.tokens = tokens
+        self.keywords: Dict[str, int] = {}
+        self.soft_keywords: Set[str] = set()
         self.rules = grammar.rules
         self.validate_rule_names()
         if "trailer" not in grammar.metas and "start" not in self.rules:
@@ -85,6 +106,7 @@ class ParserGenerator:
         compute_nullables(self.rules)
         self.first_graph, self.first_sccs = compute_left_recursives(self.rules)
         self.counter = 0  # For name_rule()/name_loop()
+        self.keyword_counter = 499  # For keyword_type()
         self.all_rules: Dict[str, Rule] = self.rules.copy()  # Rules + temporal rules
         self._local_variable_stack: List[List[str]] = []
 
@@ -127,6 +149,10 @@ class ParserGenerator:
             self.print(line)
 
     def collect_rules(self) -> None:
+        keyword_collector = KeywordCollectorVisitor(self, self.keywords, self.soft_keywords)
+        for rule in self.all_rules.values():
+            keyword_collector.visit(rule)
+
         rule_collector = RuleCollectorVisitor(self.rules, self.callmakervisitor)
         done: Set[str] = set()
         while True:
@@ -137,6 +163,10 @@ class ParserGenerator:
             done = set(self.all_rules)
             for rulename in todo:
                 rule_collector.visit(self.all_rules[rulename])
+
+    def keyword_type(self) -> int:
+        self.keyword_counter += 1
+        return self.keyword_counter
 
     def name_node(self, rhs: Rhs) -> str:
         self.counter += 1

@@ -692,5 +692,5 @@ def test_keywords() -> None:
     start: 'one' 'two' 'three' 'four' 'five' "six" "seven" "eight" "nine" "ten"
     """
     parser_class = make_parser(grammar)
-    assert parser_class.KEYWORDS == ("five", "four", "one", "three", "two")
-    assert parser_class.SOFT_KEYWORDS == ("eight", "nine", "seven", "six", "ten")
+    assert parser_class.KEYWORDS == ("one", "two", "three", "four", "five")
+    assert tuple(sorted(parser_class.SOFT_KEYWORDS)) == ("eight", "nine", "seven", "six", "ten")
