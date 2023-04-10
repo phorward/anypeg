@@ -168,13 +168,13 @@ class ParserGenerator:
         self.keyword_counter += 1
         return self.keyword_counter
 
-    def name_node(self, rhs: Rhs) -> str:
+    def artifical_rule_from_rhs(self, rhs: Rhs) -> str:
         self.counter += 1
         name = f"_tmp_{self.counter}"  # TODO: Pick a nicer name.
         self.all_rules[name] = Rule(name, None, rhs)
         return name
 
-    def name_loop(self, node: Plain, is_repeat1: bool) -> str:
+    def artificial_rule_from_repeat(self, node: Plain, is_repeat1: bool) -> str:
         self.counter += 1
         if is_repeat1:
             prefix = "_loop1_"
@@ -184,7 +184,7 @@ class ParserGenerator:
         self.all_rules[name] = Rule(name, None, Rhs([Alt([NamedItem(None, node)])]))
         return name
 
-    def name_gather(self, node: Gather) -> str:
+    def artifical_rule_from_gather(self, node: Gather) -> str:
         self.counter += 1
         name = f"_gather_{self.counter}"
         self.counter += 1
