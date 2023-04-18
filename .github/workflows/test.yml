@@ -3,23 +3,24 @@ name: Run test suite
 on:
   push:
     branches:
-      -main
+      - main
+      - anypeg
   pull_request:
     branches:
       - main
+      - anypeg
 
 jobs:
   run_tox:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8','3.9','3.10']
+        python-version: ['3.10', '3.11']
     steps:
     - uses: actions/checkout@v3
     - name: Get history and tags for SCM versioning to work
       run: |
         git fetch --prune --unshallow
-        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -33,7 +34,7 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Install Python dependencies
       run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install tox tox-gh-actions
+        python -m pip install --upgrade pip
+        python -m pip install tox tox-gh-actions
     - name: Tox
       run: tox
