@@ -121,7 +121,8 @@ def memoize_left_rec(method: Callable[[P], Optional[T]]) -> Callable[[P], Option
                 depth += 1
                 if verbose:
                     print(
-                        f"{fill}Recursive {method_name} at {mark} depth {depth}: {result!s:.200} to {endmark}"
+                        f"{fill}Recursive {method_name} at {mark} depth {depth}:"
+                        f" {result!s:.200} to {endmark}"
                     )
                 if not result:
                     if verbose:

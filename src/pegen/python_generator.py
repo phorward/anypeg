@@ -222,8 +222,7 @@ class PythonParserGenerator(ParserGenerator, GrammarVisitor):
         self.unreachable_formatting = unreachable_formatting or "None  # pragma: no cover"
         self.location_formatting = (
             location_formatting
-            or "lineno=start_lineno, col_offset=start_col_offset, "
-            "end_lineno=end_lineno, end_col_offset=end_col_offset"
+            or "lineno=start_lineno, col_offset=start_col_offset, end_lineno=end_lineno, end_col_offset=end_col_offset"
         )
         self.cleanup_statements: List[str] = []
 

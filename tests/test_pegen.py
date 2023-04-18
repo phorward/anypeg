@@ -30,7 +30,10 @@ def test_parse_grammar() -> None:
     # Check the str() and repr() of a few rules; AST nodes don't support ==.
     assert str(rules["start"]) == "start: sum NEWLINE"
     assert str(rules["sum"]) == "sum: term '+' term | term"
-    expected_repr = "Rule('term', None, Rhs([Alt([NamedItem(None, NameLeaf('NUMBER'))])]))"
+    expected_repr = (
+        "Rule('term', None, Rhs([Alt([NamedItem(None, NameLeaf('NUMBER'))])]), "
+        "nullable=False, left_recursive=False, leader=False)"
+    )
     assert repr(rules["term"]) == expected_repr
 
 
@@ -79,7 +82,8 @@ def test_typed_rules() -> None:
     assert str(rules["sum"]) == "sum: term '+' term | term"
     assert (
         repr(rules["term"])
-        == "Rule('term', 'int', Rhs([Alt([NamedItem(None, NameLeaf('NUMBER'))])]))"
+        == "Rule('term', 'int', Rhs([Alt([NamedItem(None, NameLeaf('NUMBER'))])]), nullable=False,"
+        " left_recursive=False, leader=False)"
     )
 
 
@@ -92,7 +96,8 @@ def test_gather() -> None:
     assert str(rules["start"]) == "start: ','.thing+ NEWLINE"
     print(repr(rules["start"]))
     assert repr(rules["start"]).startswith(
-        "Rule('start', None, Rhs([Alt([NamedItem(None, Gather(StringLeaf(\"','\"), NameLeaf('thing'"
+        "Rule('start', None, Rhs([Alt([NamedItem(None, Gather(StringLeaf(\"','\"),"
+        " NameLeaf('thing'"
     )
     assert str(rules["thing"]) == "thing: NUMBER"
     parser_class = make_parser(grammar)

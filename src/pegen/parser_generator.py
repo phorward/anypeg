@@ -348,7 +348,8 @@ def compute_left_recursives(
                     leaders -= scc - set(cycle)
                     if not leaders:
                         raise ValueError(
-                            f"SCC {scc} has no leadership candidate (no element is included in all cycles)"
+                            f"SCC {scc} has no leadership candidate (no element is included in all"
+                            " cycles)"
                         )
             # print("Leaders:", leaders)
             leader = min(leaders)  # Pick an arbitrary leader from the candidates.

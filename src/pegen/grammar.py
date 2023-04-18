@@ -50,7 +50,7 @@ class Grammar:
         for rule in self.rules.values():
             lines.append(f"    {repr(rule)},")
         lines.append("  ],")
-        lines.append("  {repr(list(self.metas.items()))}")
+        lines.append(f"  {repr(list(self.metas.items()))}")
         lines.append(")")
         return "\n".join(lines)
 
@@ -68,7 +68,6 @@ class Rule:
         self.type = type
         self.rhs = rhs
         self.memo = bool(memo)
-        self.visited = False
         self.nullable = False
         self.left_recursive = False
         self.leader = False
@@ -91,7 +90,10 @@ class Rule:
         return "\n".join(lines)
 
     def __repr__(self) -> str:
-        return f"Rule({self.name!r}, {self.type!r}, {self.rhs!r})"
+        return (
+            f"Rule({self.name!r}, {self.type!r}, {self.rhs!r}, nullable={self.nullable!r},"
+            f" left_recursive={self.left_recursive!r}, leader={self.leader!r})"
+        )
 
     def __iter__(self) -> Iterator[Rhs]:
         yield self.rhs
