@@ -91,8 +91,11 @@ class Rule:
 
     def __repr__(self) -> str:
         return (
-            f"Rule({self.name!r}, {self.type!r}, {self.rhs!r}, nullable={self.nullable!r},"
-            f" left_recursive={self.left_recursive!r}, leader={self.leader!r})"
+            f"{self.__class__.__name__}({self.name!r}, {self.type!r}, {self.rhs!r}, "
+            f"nullable={self.nullable!r}, "
+            f"left_recursive={self.left_recursive!r}, "
+            f"leader={self.leader!r}"
+            ")"
         )
 
     def __iter__(self) -> Iterator[Rhs]:
