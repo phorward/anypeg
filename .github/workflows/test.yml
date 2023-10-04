@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - anypeg
+      - unipeg
   pull_request:
     branches:
       - main
-      - anypeg
+      - unipeg
 
 jobs:
   run_tox:
